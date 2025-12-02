@@ -1,0 +1,54 @@
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+
+# pnpm
+.pnpm-debug.log
+.pnpm-store/
+
+# Build output
+dist/
+build/
+*.tsbuildinfo
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# MCP config (use MCP_CONFIG_EXAMPLE.json as template)
+mcp.json
+claude_desktop_config.json
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editor directories and files
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Keep VS Code settings but ignore user-specific files
+!.vscode/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+
+# Keep Cursor settings
+!.cursor/
+
+# Testing
+coverage/
+.nyc_output/
+
+# Temporary files
+*.tmp
+.cache/

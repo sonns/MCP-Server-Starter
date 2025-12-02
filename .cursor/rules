@@ -1,0 +1,834 @@
+# Cursor AI Rules for MCP Server Starter
+
+> **Note**: This file is AI-optimized for quick reference. For comprehensive human-readable documentation, see [`CODING_STANDARDS.md`](../CODING_STANDARDS.md).
+
+## Project Overview
+
+This is a TypeScript-based Model Context Protocol (MCP) server template that provides:
+- Weather information using National Weather Service (NWS) API
+- Garoon groupware integration
+
+**Architecture**: Service-based organization where each tool is a self-contained module organized by service.
+
+**Key Structure**: `tools/{service}/{tool-name}/` with 4 required files per tool.
+
+## Code Style
+
+### TypeScript
+
+- Use TypeScript for all source code
+- Enable strict mode (configured in `tsconfig.json`)
+- Use explicit types (avoid `any`, use `unknown` when needed)
+- Prefer interfaces for object shapes
+- Use `type` for unions, intersections, and primitives
+
+### Naming Conventions
+
+- **Files**: `kebab-case.ts` for all files
+  - Tool files: `handler.ts`, `input_schema.ts`, `output_schema.ts`, `index.ts`
+- **Folders**: `kebab-case/` for services and tools
+  - Example: `weather/`, `garoon/`, `forecast/`, `get-schedule-events/`
+- **Variables/Functions**: `camelCase`
+- **Types/Interfaces**: `PascalCase`
+- **Constants**: `UPPER_SNAKE_CASE` for true constants, `camelCase` otherwise
+
+### Code Organization
+
+```typescript
+// 1. Imports (external first, then internal)
+import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { config } from "./utils/config.js";
+
+// 2. Type definitions
+interface MyType {
+  // ...
+}
+
+// 3. Constants
+const MAX_RETRIES = 3;
+
+// 4. Functions
+export async function myFunction(): Promise<void> {
+  // ...
+}
+```
+
+## MCP-Specific Guidelines
+
+### Tool Structure (IMPORTANT!)
+
+Each tool MUST have exactly 4 files organized by service:
+
+```
+src/tools/{service}/{tool-name}/
+├── handler.ts         # Business logic
+├── input_schema.ts    # Input validation schema
+├── output_schema.ts   # Output type definitions
+└── index.ts           # Public exports
+```
+
+**Examples**:
+- `src/tools/weather/forecast/` → Tool: `weather_forecast`
+- `src/tools/weather/alerts/` → Tool: `weather_alerts`
+- `src/tools/garoon/get-schedule-events/` → Tool: `gr_get-schedule-events`
+
+### Tool Naming Convention
+
+```typescript
+// Service prefixes are defined in utils/config.ts
+getToolName("weather", "forecast")           // → weather_forecast
+getToolName("garoon", "get-schedule-events") // → gr_get-schedule-events
+getToolName("ai", "translate")               // → ai_translate
+
+// Special prefixes:
+// - weather: weather_
+// - garoon: gr_
+// - others: {service}_
+```
+
+### Input Schema Pattern
+
+```typescript
+// input_schema.ts
+/**
+ * {Tool Name} tool - Input schema
+ *
+ * Rules:
+ * - List any validation rules here
+ * - Explain dependencies between parameters
+ * - Document required vs optional fields
+ */
+
+export const {toolName}InputSchema = {
+  type: "object" as const,
+  properties: {
+    param: {
+      type: "string" as const,
+      description: "Clear description with examples and constraints",
+    },
+    optionalParam: {
+      type: "number" as const,
+      minimum: 1,
+      maximum: 100,
+      description: "Optional. Description with default value. Default: 10",
+    },
+  },
+  required: ["param"],
+};
+
+export interface {ToolName}Input {
+  /** Description of param */
+  param: string;
+  /** Description of optionalParam */
+  optionalParam?: number;
+}
+```
+
+### Output Schema Pattern
+
+```typescript
+// output_schema.ts
+/**
+ * {Tool Name} tool - Output schema
+ */
+
+/**
+ * API Response structure (if using external API)
+ */
+export interface {Service}ApiResponse {
+  // Define API response structure
+  data: string;
+  status: string;
+}
+
+/**
+ * MCP Tool output format
+ */
+export interface {ToolName}Output {
+  content: Array<{
+    type: "text";
+    text: string;
+  }>;
+  isError?: boolean;
+}
+```
+
+### Handler Pattern
+
+```typescript
+// handler.ts
+/**
+ * {Tool Name} tool - Handler
+ * {Brief description of what this tool does}
+ */
+
+import { fetch{Service} } from "../../../utils/fetch.js";
+import type { {ToolName}Input } from "./input_schema.js";
+import type {
+  {Service}ApiResponse,
+  {ToolName}Output,
+} from "./output_schema.js";
+
+/**
+ * Main handler function
+ *
+ * @param input - Tool input parameters
+ * @returns Formatted tool output
+ * @throws Error if validation fails or API call fails
+ */
+export async function handle{ToolName}(
+  input: {ToolName}Input
+): Promise<{ToolName}Output> {
+  // 1. Validate input (if complex validation needed)
+  if (!isValid(input)) {
+    throw new Error("Validation error message with helpful details");
+  }
+
+  // 2. Build API request
+  const endpoint = `/api/endpoint`;
+  const params = new URLSearchParams();
+
+  if (input.param) {
+    params.append("param", input.param);
+  }
+
+  // 3. Call external API
+  try {
+    const data = await fetch{Service}<{Service}ApiResponse>(
+      `${endpoint}?${params.toString()}`
+    );
+
+    // 4. Format output
+    const result = formatOutput(data);
+
+    // 5. Return success response
+    return {
+      content: [{ type: "text", text: result }],
+    };
+  } catch (error) {
+    // 6. Handle errors gracefully
+    console.error("Tool failed:", error);
+    return {
+      content: [{
+        type: "text",
+        text: `Error: ${error instanceof Error ? error.message : "Unknown error"}`
+      }],
+      isError: true,
+    };
+  }
+}
+
+/**
+ * Helper function to format output
+ */
+function formatOutput(data: {Service}ApiResponse): string {
+  const lines: string[] = [];
+  lines.push(`Result: ${data.data}`);
+  return lines.join("\n");
+}
+```
+
+### Index Pattern
+
+```typescript
+// index.ts
+/**
+ * {Tool Name} tool
+ */
+
+export { handle{ToolName} } from "./handler.js";
+export { {toolName}InputSchema } from "./input_schema.js";
+export type { {ToolName}Input } from "./input_schema.js";
+export type { {ToolName}Output } from "./output_schema.js";
+
+export const {toolName}Metadata = {
+  name: "{tool-name}",  // MUST match folder name
+  description: "Brief description of what the tool does",
+};
+```
+
+### Tool Registration
+
+```typescript
+// src/tools/index.ts
+import { getToolName } from "../utils/config.js";
+import {
+  {toolName}Metadata,
+  {toolName}InputSchema,
+  handle{ToolName},
+  type {ToolName}Input,
+} from "./{service}/{tool-name}/index.js";
+
+const tools: ToolDefinition[] = [
+  // ... existing tools
+  {
+    name: getToolName("{service}", {toolName}Metadata.name),
+    description: {toolName}Metadata.description,
+    inputSchema: {toolName}InputSchema,
+    handler: async (input: unknown) => {
+      return handle{ToolName}(input as {ToolName}Input);
+    },
+  },
+];
+```
+
+## Import Guidelines
+
+### Always use `.js` extensions
+
+```typescript
+// ✅ Correct
+import { config } from "./utils/config.js";
+import type { ForecastInput } from "./input_schema.js";
+
+// ❌ Wrong
+import { config } from "./utils/config";
+import type { ForecastInput } from "./input_schema";
+```
+
+### Import Order
+
+1. External packages
+2. MCP SDK imports
+3. Internal utility imports
+4. Relative imports
+5. Type imports (can be mixed with `import type`)
+
+```typescript
+// Example
+import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { CallToolRequestSchema } from "@modelcontextprotocol/sdk/types.js";
+import { config, getToolName } from "../utils/config.js";
+import { fetchFromAPI } from "../utils/fetch.js";
+import type { MyInput } from "./input_schema.js";
+```
+
+## Documentation
+
+### JSDoc Comments
+
+```typescript
+/**
+ * Brief description of what this function does
+ *
+ * @param param - Parameter description with type info
+ * @returns Return value description
+ * @throws Error description when it can throw
+ *
+ * @example
+ * ```typescript
+ * const result = await myFunction("value");
+ * ```
+ */
+export async function myFunction(param: string): Promise<void> {
+  // ...
+}
+```
+
+### File Headers
+
+```typescript
+/**
+ * {Tool Name} tool - {File Purpose}
+ * {Brief description of what this file does}
+ */
+```
+
+### Inline Comments
+
+```typescript
+// Use comments to explain WHY, not WHAT
+// ✅ Good
+// Retry 3 times because the API is flaky during peak hours
+const maxRetries = 3;
+
+// ❌ Bad
+// Set maxRetries to 3
+const maxRetries = 3;
+```
+
+## Error Handling
+
+### Always catch and format errors
+
+```typescript
+try {
+  return await handler(input);
+} catch (error) {
+  console.error(`Error in ${toolName}:`, error);
+  return {
+    content: [{
+      type: "text",
+      text: `Error: ${error instanceof Error ? error.message : "Unknown error"}`,
+    }],
+    isError: true,
+  };
+}
+```
+
+### Throw descriptive errors
+
+```typescript
+// ✅ Good - Descriptive with context
+if (!isValid(input)) {
+  throw new Error(
+    `Invalid input: expected format is YYYY-MM-DD, got: ${input.date}`
+  );
+}
+
+// ❌ Bad - Vague
+if (!isValid(input)) {
+  throw new Error("Invalid input");
+}
+```
+
+### Input Validation
+
+```typescript
+// Validate early and clearly
+export async function handleMyTool(input: MyInput): Promise<MyOutput> {
+  // Validate required fields
+  if (!input.requiredField) {
+    throw new Error("requiredField is required");
+  }
+
+  // Validate dependencies
+  if (input.fieldA && !input.fieldB) {
+    throw new Error(
+      "fieldB is required when fieldA is provided. " +
+      "Either provide both, or omit both."
+    );
+  }
+
+  // Validate format
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(input.date)) {
+    throw new Error("date must be in YYYY-MM-DD format");
+  }
+
+  // Continue with logic...
+}
+```
+
+## Performance
+
+- Use `async/await` for asynchronous operations
+- Avoid blocking operations in handlers
+- Consider caching for repeated API calls (implement when needed)
+- Use parallel requests when possible: `Promise.all()`
+
+```typescript
+// ✅ Good - Parallel requests
+const [weather, alerts] = await Promise.all([
+  fetchWeather(),
+  fetchAlerts(),
+]);
+
+// ❌ Bad - Sequential requests
+const weather = await fetchWeather();
+const alerts = await fetchAlerts();
+```
+
+## Security
+
+### Never hardcode credentials
+
+```typescript
+// ✅ Correct - From environment
+const apiKey = process.env.API_KEY;
+if (!apiKey) {
+  throw new Error("API_KEY environment variable is required");
+}
+
+// ❌ Wrong - Hardcoded
+const apiKey = "sk-1234567890";
+```
+
+### Validate all inputs
+
+```typescript
+// Validate formats
+if (!/^[A-Z]{2}$/.test(stateCode)) {
+  throw new Error("Invalid state code: must be 2 uppercase letters");
+}
+
+// Validate ranges
+if (latitude < -90 || latitude > 90) {
+  throw new Error("Latitude must be between -90 and 90");
+}
+```
+
+### Sanitize user data
+
+```typescript
+function sanitizeString(input: string): string {
+  return input.replace(/[<>]/g, "").trim();
+}
+```
+
+## Git Commit Guidelines
+
+Use conventional commit format:
+
+```
+type(scope): subject
+
+body
+
+footer
+```
+
+**Types**:
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation only
+- `style`: Formatting, missing semicolons, etc.
+- `refactor`: Code restructuring without functionality change
+- `perf`: Performance improvement
+- `test`: Adding tests
+- `chore`: Maintenance tasks
+
+**Examples**:
+```
+feat(tools): add translation tool for AI service
+fix(garoon): correct parameter validation for target/targetType
+docs(readme): update quick start guide with new structure
+refactor(tools): reorganize weather tools by service
+```
+
+## Common Patterns
+
+### API Fetching
+
+```typescript
+// For NWS API
+const data = await fetchFromNWS<ResponseType>(endpoint);
+
+// For Garoon API
+const data = await fetchFromGaroon<ResponseType>(endpoint, {
+  method: "POST",
+  body: JSON.stringify(requestBody),
+});
+```
+
+### Configuration Access
+
+```typescript
+import { config, getToolName } from "../utils/config.js";
+
+const url = config.nws.baseUrl;
+const toolName = getToolName("weather", "forecast");
+```
+
+### Output Formatting
+
+```typescript
+function formatOutput(data: ApiData): string {
+  const lines: string[] = [];
+
+  lines.push(`Title: ${data.title}`);
+  lines.push(`Status: ${data.status}`);
+
+  if (data.details) {
+    lines.push(`\nDetails:`);
+    lines.push(`  ${data.details}`);
+  }
+
+  return lines.join("\n");
+}
+```
+
+## Testing
+
+### Manual Testing Checklist
+
+1. **Build**: `pnpm run build`
+2. **Type check**: `pnpm run typecheck`
+3. **Lint**: `pnpm run lint`
+4. **Format check**: `pnpm run format:check`
+5. **All checks**: `pnpm run check`
+6. **Test via MCP client**: Restart Claude Desktop and test
+7. **Verify error handling**: Test with invalid inputs
+8. **Test edge cases**: Boundary values, optional params, etc.
+
+## Adding a New Tool
+
+### Step-by-Step Process
+
+For detailed guide, see `docs/TOOL_TEMPLATE.md`.
+
+1. **Create folder**: `mkdir -p src/tools/{service}/{tool-name}`
+2. **Create 4 required files**:
+   - `handler.ts` - Business logic
+   - `input_schema.ts` - Input validation
+   - `output_schema.ts` - Output types
+   - `index.ts` - Public exports
+3. **Implement files** following patterns above
+4. **Register in** `src/tools/index.ts`
+5. **Build**: `pnpm run build`
+6. **Test**: Via MCP client
+7. **Document**: Update `docs/TEST_EXAMPLES.md`
+
+### Quick Reference Commands
+
+```bash
+# Create structure
+mkdir -p src/tools/{service}/{tool-name}
+cd src/tools/{service}/{tool-name}
+
+# Create files from template (copy existing tool)
+cp ../../weather/forecast/input_schema.ts ./
+cp ../../weather/forecast/output_schema.ts ./
+cp ../../weather/forecast/handler.ts ./
+cp ../../weather/forecast/index.ts ./
+
+# Edit files to implement your tool
+# Then register in ../../index.ts
+pnpm run build
+```
+
+## Anti-Patterns (AVOID!)
+
+### ❌ Don't use different naming between folder and metadata
+
+```typescript
+// Folder: src/tools/weather/forecast/
+// ❌ Wrong
+export const forecastMetadata = {
+  name: "get-forecast",  // Doesn't match folder name!
+};
+
+// ✅ Correct
+export const forecastMetadata = {
+  name: "forecast",  // Matches folder name
+};
+```
+
+### ❌ Don't hardcode values
+
+```typescript
+// ❌ Wrong
+const apiUrl = "https://api.weather.gov";
+const toolName = "weather_forecast";
+
+// ✅ Correct
+const apiUrl = config.nws.baseUrl;
+const toolName = getToolName("weather", "forecast");
+```
+
+### ❌ Don't use `any`
+
+```typescript
+// ❌ Wrong
+const handler = async (input: any) => { };
+
+// ✅ Correct
+const handler = async (input: unknown) => {
+  const validInput = input as ToolNameInput;
+  // Or with validation:
+  if (!isValidInput(input)) {
+    throw new Error("Invalid input");
+  }
+  // Now TypeScript knows input is valid
+};
+```
+
+### ❌ Don't mix concerns in handlers
+
+```typescript
+// ❌ Wrong - Handler doing too much
+export async function handleForecast(input: ForecastInput) {
+  // Validation
+  if (!input.lat) throw new Error("Missing lat");
+  // Fetching
+  const data = await fetch(url);
+  // Formatting
+  const formatted = `Result: ${data}`;
+  // Logging
+  console.log("Done");
+  // All in one place!
+}
+
+// ✅ Correct - Separate concerns
+export async function handleForecast(input: ForecastInput): Promise<ForecastOutput> {
+  validateInput(input);
+  const data = await fetchData(input);
+  return formatOutput(data);
+}
+
+function validateInput(input: ForecastInput): void {
+  if (!input.lat) throw new Error("Missing lat");
+}
+
+async function fetchData(input: ForecastInput): Promise<ApiData> {
+  return await fetchFromNWS<ApiData>(buildUrl(input));
+}
+
+function formatOutput(data: ApiData): ForecastOutput {
+  return {
+    content: [{ type: "text", text: formatData(data) }],
+  };
+}
+```
+
+### ❌ Don't forget error handling
+
+```typescript
+// ❌ Wrong - No error handling
+const data = await fetch(url).then(r => r.json());
+
+// ✅ Correct - Comprehensive error handling
+try {
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  return data;
+} catch (error) {
+  console.error("Fetch failed:", error);
+  throw new Error(
+    `Failed to fetch data: ${error instanceof Error ? error.message : "Unknown error"}`
+  );
+}
+```
+
+### ❌ Don't skip input validation
+
+```typescript
+// ❌ Wrong - Assuming input is valid
+export async function handleTool(input: MyInput): Promise<MyOutput> {
+  const data = await fetchApi(input.param);
+  return formatOutput(data);
+}
+
+// ✅ Correct - Validate first
+export async function handleTool(input: MyInput): Promise<MyOutput> {
+  // Validate required fields
+  if (!input.param) {
+    throw new Error("param is required");
+  }
+
+  // Validate format
+  if (!/^[a-z]+$/.test(input.param)) {
+    throw new Error("param must contain only lowercase letters");
+  }
+
+  const data = await fetchApi(input.param);
+  return formatOutput(data);
+}
+```
+
+## Environment Variables
+
+Configure in MCP client config (not in `.env` file):
+
+```json
+{
+  "mcpServers": {
+    "mcp-server-starter": {
+      "command": "node",
+      "args": ["/path/to/dist/index.js"],
+      "env": {
+        "NWS_BASE_URL": "https://api.weather.gov",
+        "NWS_USER_AGENT": "mcp-server-starter/1.0",
+        "GAROON_BASE_URL": "http://localhost:8080/cgi-bin/cbgrn/grn.cgi/",
+        "GAROON_USERNAME": "Administrator",
+        "GAROON_PASSWORD": "cybozu"
+      }
+    }
+  }
+}
+```
+
+## Project Structure
+
+```
+src/
+├── index.ts                 # Server entry point (uses Server class)
+├── tools/                   # MCP tools organized by service
+│   ├── {service}/          # Service directory (weather, garoon, etc.)
+│   │   ├── {tool-name}/   # Individual tool
+│   │   │   ├── handler.ts
+│   │   │   ├── input_schema.ts
+│   │   │   ├── output_schema.ts
+│   │   │   └── index.ts
+│   │   └── README.md      # Service documentation (optional)
+│   └── index.ts           # Tool registration
+├── resources/             # MCP resources
+│   └── index.ts
+├── prompts/               # MCP prompts
+│   └── index.ts
+└── utils/                 # Shared utilities
+    ├── config.ts         # Configuration management
+    └── fetch.ts          # API fetch helpers
+
+docs/
+├── SETUP_GUIDE.md         # Setup instructions
+├── TEST_EXAMPLES.md       # Testing examples
+├── TOOL_TEMPLATE.md       # Tool creation guide
+└── CHANGELOG.md           # Change history
+```
+
+## Remember - Key Rules
+
+1. **Tool structure**: `tools/{service}/{tool-name}/` with 4 required files
+2. **Tool naming**: Use `getToolName(service, name)` for consistency
+3. **Register all tools** in `src/tools/index.ts`
+4. **Configuration via environment variables** in MCP client config
+5. **Always handle errors** gracefully with helpful messages
+6. **Document your code** with JSDoc comments
+7. **Run checks before committing**: `pnpm run check`
+8. **Use `Server` class** from `@modelcontextprotocol/sdk/server/index.js`
+9. **Validate inputs early** with clear error messages
+10. **Follow the tool template** in `docs/TOOL_TEMPLATE.md`
+
+## Quick Reference
+
+### Commands
+
+```bash
+pnpm run build          # Build TypeScript
+pnpm run watch          # Watch mode
+pnpm run dev            # Development mode
+pnpm run lint           # Check linting
+pnpm run lint:fix       # Fix linting issues
+pnpm run format         # Format code
+pnpm run format:check   # Check formatting
+pnpm run typecheck      # Type check only
+pnpm run check          # Run all checks
+pnpm run clean          # Clean build artifacts
+```
+
+### Important Files
+
+- **Server**: `src/index.ts`
+- **Tools**: `src/tools/index.ts`
+- **Config**: `src/utils/config.ts`
+- **Fetch utils**: `src/utils/fetch.ts`
+- **Built files**: `dist/`
+- **Documentation**: `docs/`
+
+### Resources
+
+- **Tool Template**: `docs/TOOL_TEMPLATE.md`
+- **Setup Guide**: `docs/SETUP_GUIDE.md`
+- **Test Examples**: `docs/TEST_EXAMPLES.md`
+- **Coding Standards**: `CODING_STANDARDS.md`
+- **Contributing**: `CONTRIBUTING.md`
+
+### Tool Development Workflow
+
+1. Create folder: `src/tools/{service}/{tool-name}/`
+2. Add 4 files: `handler.ts`, `input_schema.ts`, `output_schema.ts`, `index.ts`
+3. Implement following patterns in this file
+4. Register in `src/tools/index.ts`
+5. Build and test: `pnpm run build`
+6. Test via MCP client
+7. Document in `docs/TEST_EXAMPLES.md`
+8. Commit with conventional commit message
+
+---
+
+**For detailed tool creation guide, always refer to `docs/TOOL_TEMPLATE.md`**
