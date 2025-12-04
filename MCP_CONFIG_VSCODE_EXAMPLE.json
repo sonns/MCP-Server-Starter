@@ -1,0 +1,14 @@
+{
+  "servers": {
+    "mcp-server-starter": {
+      "command": "node",
+      "args": ["[path-to-project]/dist/index.js"],
+      "env": {
+        "NWS_BASE_URL": "https://api.weather.gov",
+        "GAROON_BASE_URL": "http://localhost:8080/cgi-bin/cbgrn/grn.cgi/",
+        "GAROON_USERNAME": "Administrator",
+        "GAROON_PASSWORD": "cybozu"
+      }
+    }
+  }
+}

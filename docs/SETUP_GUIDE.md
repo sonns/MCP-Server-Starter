@@ -1,6 +1,6 @@
 # MCP Weather Server - Setup Guide
 
-## 🚀 Quick Setup for Claude Desktop
+## 🚀 Quick Setup for Claude Desktop & VS Code
 
 ### Step 1: Build the Server
 
@@ -73,12 +73,82 @@ pnpm run build
 - Completely quit Claude Desktop (Cmd+Q on Mac)
 - Reopen Claude Desktop
 
-### Step 4: Verify Installation
+### Step 4: Verify Installation (Claude Desktop)
 
 In Claude Desktop, you should see:
 
 - A small "🔌" icon or tools indicator
 - The server should connect automatically
+
+---
+
+## 🖥️ Setup for VS Code (Copilot Chat)
+
+### Option 1: Workspace Configuration (Recommended)
+
+1. **Create `.vscode/mcp.json` in your workspace:**
+
+   ```json
+   {
+     "servers": {
+       "mcp-server-starter": {
+         "command": "node",
+         "args": ["[path-to-project]/MCP-Server-Starter/dist/index.js"],
+         "env": {
+           "NWS_BASE_URL": "https://api.weather.gov",
+           "GAROON_BASE_URL": "http://localhost:8080/cgi-bin/cbgrn/grn.cgi/",
+           "GAROON_USERNAME": "Administrator",
+           "GAROON_PASSWORD": "your-password"
+         }
+       }
+     }
+   }
+   ```
+
+2. **Restart VS Code** or reload the window (`Cmd+Shift+P` → "Developer: Reload Window")
+
+### Option 2: User Settings Configuration
+
+1. **Open VS Code Settings (JSON):**
+
+   ```
+   Cmd+Shift+P → "Preferences: Open User Settings (JSON)"
+   ```
+
+2. **Add MCP configuration:**
+
+   ```json
+   {
+     "mcp": {
+       "servers": {
+         "mcp-server-starter": {
+           "command": "node",
+           "args": ["[path-to-project]/MCP-Server-Starter/dist/index.js"],
+           "env": {
+             "NWS_BASE_URL": "https://api.weather.gov",
+             "GAROON_BASE_URL": "http://localhost:8080/cgi-bin/cbgrn/grn.cgi/",
+             "GAROON_USERNAME": "Administrator",
+             "GAROON_PASSWORD": "your-password"
+           }
+         }
+       }
+     }
+   }
+   ```
+
+### Verify Installation (VS Code)
+
+1. Open Copilot Chat (`Cmd+Shift+I` or click the Copilot icon)
+2. The MCP server tools should be available in Agent mode
+3. Try asking: "What's the weather forecast for San Francisco?"
+
+### Key Differences: Claude Desktop vs VS Code
+
+| Feature         | Claude Desktop               | VS Code                             |
+| --------------- | ---------------------------- | ----------------------------------- |
+| Config Key      | `"mcpServers"`               | `"servers"`                         |
+| Config Location | `claude_desktop_config.json` | `.vscode/mcp.json` or User Settings |
+| Restart         | Quit & Reopen app            | Reload Window                       |
 
 ---
 
